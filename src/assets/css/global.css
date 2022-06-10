@@ -1,0 +1,8 @@
+html,
+body,
+#app{
+    /* 占屏幕的比例 */
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
