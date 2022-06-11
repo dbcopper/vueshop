@@ -6,3 +6,18 @@ body,
     margin: 0;
     padding: 0;
 }
+/* 进行全局设定 */
+.el-breadcrumb{
+    margin-bottom: 15px;
+} 
+/* important可以覆盖他 */
+.el-card{
+    box-shadow: 0 1px 1px rgba(0,0,0,0.15) !important;
+}
+.el-table{
+    margin-top: 15px;
+    font-size: 15px;
+}
+.el-pagination{
+    margin-top: 15px;
+}
