@@ -38,7 +38,7 @@
                                    <i class="el-icon-caret-right"></i>
                               </el-col>
                               <el-col :span="18">
-                                   <el-tag v-for="(item3,l3) in item2.children" :key="item3.id" type="warning">
+                                   <el-tag v-for="(item3) in item2.children" :key="item3.id" type="warning">
                                     {{item3.authName}}</el-tag>
                               </el-col>
                             </el-row>
