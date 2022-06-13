@@ -25,7 +25,7 @@
                          <el-row :class="['bdbottom','vcenter', l1 === 0 ? 'bdtop' :'']" v-for="(item1,l1) in scope.row.children" :key="item1.id">
                           <!-- 渲染一级权限 -->
                           <el-col :span="5">
-                           <el-tag>{{item1.authName}}</el-tag>
+                           <el-tag closable>{{item1.authName}}</el-tag>
                            <!-- 增加一个icon图标 -->
                            <i class="el-icon-caret-right"></i>
                           </el-col>
@@ -34,11 +34,11 @@
                             <el-row :class=" ['vcenter',l2 === 0 ? '':'bdtop']"  v-for="(item2,l2) in item1.children" :key="item2.id">
                               <!-- 重新分配span -->
                               <el-col :span="6">
-                                   <el-tag type="success">{{item2.authName}}</el-tag>
+                                   <el-tag closable type="success" @close="removeRightById(scope.row,item2.id)">{{item2.authName}}</el-tag>
                                    <i class="el-icon-caret-right"></i>
                               </el-col>
                               <el-col :span="18">
-                                   <el-tag v-for="(item3) in item2.children" :key="item3.id" type="warning">
+                                   <el-tag closable v-for="(item3) in item2.children" :key="item3.id" type="warning" @close="removeRightById(scope.row,item3.id)">
                                     {{item3.authName}}</el-tag>
                               </el-col>
                             </el-row>
@@ -56,7 +56,7 @@
                         <!-- 并非写在label中 -->
                           <el-button type="primary" icon="el-icon-edit" size="mini" @click="showEditDialog(scope.row.id)">编辑</el-button>
                           <el-button type="danger" icon="el-icon-delete" size="mini" @click="removeRoleById(scope.row.id)">删除</el-button>
-                          <el-button type="warning" icon="el-icon-setting" size="mini" >分配权限</el-button>
+                          <el-button type="warning" icon="el-icon-setting" size="mini" @click="showSetRightDialog">分配权限</el-button>
                       </template>
                       </el-table-column>
                     </el-table>
@@ -65,7 +65,7 @@
         </el-card>
         <!-- 修改对话框 -->
         <el-dialog
-        title="修改用户信息"
+        title="修改角色信息"
         :visible.sync="editDialogVisable"
         width="30%"
         >
@@ -84,6 +84,23 @@
             <el-button type="primary" @click="editRole">确 定</el-button>
         </span>
         </el-dialog>
+        <!-- 分配权限对话框 -->
+        <el-dialog
+        title="分配角色权限"
+        :visible.sync="setDialogVisable"
+        width="30%"
+        >
+        <!-- 使用树来渲染 -->
+        <!-- show-checkbox显示候选框 -->
+        <!-- node-key 当你选中了节点就是选中了我的id值 -->
+        <!-- default-expand-all 默认展开-->
+          <el-tree show-checkbox default-expand-all :data="setForm" :props="treeProps" node-key="id"  ref="setFormRef" @closed='setDialogClosed'></el-tree>
+        <!-- 底部区域 -->
+        <span slot="footer" class="dialog-footer">
+            <el-button @click="setDialogVisable = false">取 消</el-button>
+            <el-button type="primary" @click="setRight">确 定</el-button>
+        </span>
+        </el-dialog>
     </div>
 
 </template>
@@ -94,7 +111,17 @@ export default {
     return {
       rolesList: [],
       editForm: [],
-      editDialogVisable: false
+      setForm: [],
+      editDialogVisable: false,
+      setDialogVisable: false,
+      // 树形控件的属性绑定对象
+      treeProps: {
+        // 显示哪个文本段
+        label: 'authName',
+        // 以什么来进行父子嵌套
+        children: 'children'
+      }
+
     }
   },
   created() {
@@ -146,7 +173,43 @@ export default {
         type: 'success',
         message: '删除成功!'
       })
-    }
+    },
+    async removeRightById(role, rightId) {
+      const confirmResult = await this.$confirm('此操作将永久删除该权限, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).catch(err => err)
+      //   catch捕捉错误，取消也是错误噢
+      // 如果用户确认删除，返回值为confirm，否则是cancel
+      if (confirmResult !== 'confirm') { return this.$message.info('取消删除') }
+      //   进行删除操作
+      // 反引号操作!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      const { data: res } = await this.$http.delete(`roles/${role.id}/rights/${rightId}`)
+      if (res.meta.status !== 200) return this.$message.error('删除权限信息失败')
+      // 这个会让整个页面进行渲染
+      // this.getRolesList()
+      // 这样页面就不会整个渲染了
+      role.children = res.data
+      this.$message({
+        type: 'success',
+        message: '删除成功!'
+      })
+    },
+    // 展示分配权限的对话框
+    async showSetRightDialog() {
+      // 以树控件形式获取数据
+      const { data: res } = await this.$http.get('rights/tree')
+      if (res.meta.status !== 200) return this.$message.error('获取权限信息失败')
+      //   将查询成功的信息保存
+      this.setForm = res.data
+      this.setDialogVisable = true
+    },
+    setDialogClosed() {
+      this.$refs.setFormRef.resetFields()
+    },
+    // 设定权限
+    setRight() {}
   }
 }
 </script>
