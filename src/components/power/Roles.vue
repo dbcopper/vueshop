@@ -10,7 +10,7 @@
         <el-card>
             <el-row>
                 <el-col>
-                    <el-button type="primary">添加角色</el-button>
+                    <el-button type="primary" @click="addDialogVisable=true">添加角色</el-button>
                 </el-col>
                 <el-col>
                     <el-table :data="rolesList" border stripe>
@@ -56,7 +56,7 @@
                         <!-- 并非写在label中 -->
                           <el-button type="primary" icon="el-icon-edit" size="mini" @click="showEditDialog(scope.row.id)">编辑</el-button>
                           <el-button type="danger" icon="el-icon-delete" size="mini" @click="removeRoleById(scope.row.id)">删除</el-button>
-                          <el-button type="warning" icon="el-icon-setting" size="mini" @click="showSetRightDialog">分配权限</el-button>
+                          <el-button type="warning" icon="el-icon-setting" size="mini" @click="showSetRightDialog(scope.row)">分配权限</el-button>
                       </template>
                       </el-table-column>
                     </el-table>
@@ -89,16 +89,39 @@
         title="分配角色权限"
         :visible.sync="setDialogVisable"
         width="30%"
+        @closed="setRightDialogClosed"
         >
         <!-- 使用树来渲染 -->
         <!-- show-checkbox显示候选框 -->
         <!-- node-key 当你选中了节点就是选中了我的id值 -->
         <!-- default-expand-all 默认展开-->
-          <el-tree show-checkbox default-expand-all :data="setForm" :props="treeProps" node-key="id"  ref="setFormRef" @closed='setDialogClosed'></el-tree>
+        <!-- 默认将原有的key：id绑定到上面 -->
+          <el-tree show-checkbox default-expand-all :default-checked-keys="defKeys" :data="setForm" :props="treeProps" node-key="id"  ref="setFormRef" @closed='setDialogClosed'></el-tree>
         <!-- 底部区域 -->
         <span slot="footer" class="dialog-footer">
             <el-button @click="setDialogVisable = false">取 消</el-button>
             <el-button type="primary" @click="setRight">确 定</el-button>
+        </span>
+        </el-dialog>
+        <!-- 增加用户对话框 -->
+        <el-dialog
+        title="增加角色"
+        :visible.sync="addDialogVisable"
+        width="30%"
+        >
+        <el-form :model="addForm"  label-width="70px" ref="addFormRef" >
+        <el-form-item label="角色名称">
+            <el-input v-model="addForm.roleName"></el-input>
+        </el-form-item>
+        <el-form-item label="角色描述">
+            <el-input v-model="addForm.roleDesc"></el-input>
+        </el-form-item>
+
+        </el-form>
+        <!-- 底部区域 -->
+        <span slot="footer" class="dialog-footer">
+            <el-button @click="addDialogVisable = false">取 消</el-button>
+            <el-button type="primary" @click="addRole">确 定</el-button>
         </span>
         </el-dialog>
     </div>
@@ -111,17 +134,25 @@ export default {
     return {
       rolesList: [],
       editForm: [],
+      addForm: {
+        roleName: '',
+        roleDesc: ''
+      },
       setForm: [],
       editDialogVisable: false,
       setDialogVisable: false,
+      addDialogVisable: false,
       // 树形控件的属性绑定对象
       treeProps: {
         // 显示哪个文本段
         label: 'authName',
         // 以什么来进行父子嵌套
         children: 'children'
-      }
-
+      },
+      // 默认选定的节点id值
+      defKeys: [],
+      // 当前节点的id
+      roleId: ''
     }
   },
   created() {
@@ -197,19 +228,58 @@ export default {
       })
     },
     // 展示分配权限的对话框
-    async showSetRightDialog() {
+    async showSetRightDialog(node) {
+      this.roleId = node.id
       // 以树控件形式获取数据
       const { data: res } = await this.$http.get('rights/tree')
       if (res.meta.status !== 200) return this.$message.error('获取权限信息失败')
       //   将查询成功的信息保存
       this.setForm = res.data
+      this.getLeafKeys(node, this.defKeys)
       this.setDialogVisable = true
     },
     setDialogClosed() {
       this.$refs.setFormRef.resetFields()
     },
     // 设定权限
-    setRight() {}
+    // 使用tree提供的方法,获取选中和半选中的id
+    async setRight() {
+      // 在数组中加三个点，代表将花括号脱掉，只生成一个一维数组
+      const key = [
+        ...this.$refs.setFormRef.getCheckedKeys(), ...this.$refs.setFormRef.getHalfCheckedKeys()
+      ]
+      // 将返回的数组生成一个由逗号拼接的字符串
+      const keys = key.join(',')
+      const { data: res } = await this.$http.post(`roles/${this.roleId}/rights/`, { rids: keys })
+      if (res.meta.status !== 200) return this.$message.error('分配权限信息失败')
+      this.$message({ type: 'success', message: '分配权限成功' })
+      this.getRolesList()
+      this.setDialogVisable = false
+    },
+    // 递归地获取校色下所有三级权限的id，并保存到defKeys数组中
+    getLeafKeys(node, arr) {
+      // 如果不包含children 则为三级节点
+      if (!node.children) {
+        // 将获得的id压入
+        return arr.push(node.id)
+      }
+      // 对children的所有子节点进行循环，如果不是三级节点，就进行递归操作
+      node.children.forEach(item =>
+        this.getLeafKeys(item, arr))
+    },
+    // 监听分配对话框的关闭
+    setRightDialogClosed() {
+      this.defKeys = []
+    },
+    async addRole() {
+      const { data: res } = await this.$http.post('roles/', { roleName: this.addForm.roleName, roleDesc: this.addForm.roleDesc })
+      if (res.meta.status !== 201) return this.$message.error('添加角色失败')
+      this.addDialogVisable = false
+      // 重新获取用户的列表
+      this.getRolesList()
+      this.$message.success('添加角色成功')
+      this.addForm = {}
+    }
   }
 }
 </script>
