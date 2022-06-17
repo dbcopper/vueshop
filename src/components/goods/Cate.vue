@@ -100,7 +100,7 @@ export default {
       querInfo: {
         type: 3,
         pagenum: 1,
-        pagesize: 5
+        pagesize: 10
       },
       editDialogVisable: false,
       addDialogVisable: false,
