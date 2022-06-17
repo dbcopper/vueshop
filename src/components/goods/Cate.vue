@@ -29,8 +29,8 @@
           </template>
           <template slot="operation" slot-scope="scope">
             <!-- 使用if else进行判断 -->
-            <el-button type="primary" icon="el-cion-edit" size="mini">编辑</el-button>
-            <el-button type="danger" icon="el-cion-delete" size="mini">删除</el-button>
+            <el-button type="primary" icon="el-cion-edit" size="mini" @click="showEditDialog(scope.row.cat_id)" >编辑</el-button>
+            <el-button type="danger" icon="el-cion-delete" size="mini" @click="removeRoleById(scope.row.cat_id)">删除</el-button>
           </template>
         </tree-table>
         <!-- 分页区 -->
@@ -45,7 +45,7 @@
         </el-pagination>
         <!-- 添加类型 -->
          <el-dialog
-        title="添加分类"
+        title="添加商品分类"
         :visible.sync="addDialogVisable"
         width="30%"
         @closed='addDialogClosed'
@@ -73,6 +73,22 @@
             <el-button type="primary" @click="addCate">确 定</el-button>
           </span>
         </el-dialog>
+        <!-- 修改分类 -->
+        <el-dialog
+        title="修改商品分类信息"
+        :visible.sync="editDialogVisable"
+        width="30%"
+        >
+        <el-form :model="editForm"  label-width="100px" ref="editFormRef">
+          <el-form-item label="分类名称：" prop="cat_name">
+              <el-input v-model="editForm.cat_name"></el-input>
+          </el-form-item>
+        </el-form>
+          <span  slot="footer" class="dialog-footer">
+            <el-button @click="editDialogVisable=false">取 消</el-button>
+            <el-button type="primary" @click="editCate(editForm.cat_id)">确 定</el-button>
+          </span>
+        </el-dialog>
     </el-card>
 </div>
 </template>
@@ -86,6 +102,7 @@ export default {
         pagenum: 1,
         pagesize: 5
       },
+      editDialogVisable: false,
       addDialogVisable: false,
       // 商品分类列表
       catelist: [],
@@ -94,6 +111,8 @@ export default {
         cat_pid: 0,
         cat_level: 0
       },
+      // 修改
+      editForm: {},
       addFormRules: {
         cat_name: { required: true, message: '请输入商品种类', trigger: 'blur' }
       },
@@ -196,6 +215,41 @@ export default {
       // 将获取的数据放入data中
       // this.parentCateList = res.data
       this.addDialogVisable = false
+    },
+    // 根据id进行删除
+    async removeRoleById(id) {
+      const confirmResult = await this.$confirm('此操作将永久删除该用户, 是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).catch(err => err)
+      //   catch捕捉错误，取消也是错误噢
+      // 如果用户确认删除，返回值为confirm，否则是cancel
+      if (confirmResult !== 'confirm') { return this.$message.info('取消删除') }
+      //   进行删除操作
+      const { data: res } = await this.$http.delete('categories/' + id)
+      if (res.meta.status !== 200) return console.log(res)
+      // this.$message.error('删除角色信息失败')
+      this.getCateList()
+      this.$message.success('删除成功!')
+    },
+    // 边界栏
+    async showEditDialog(id) {
+      //   根据id进行查询,动态查询，使用字符串拼接
+      const { data: res } = await this.$http.get('categories/' + id)
+      if (res.meta.status !== 200) return this.$message.error('查询商品分类信息失败')
+      //   将查询成功的信息保存
+      this.editForm = res.data
+      this.editDialogVisable = true
+    },
+    // 编辑提交分类
+    async editCate(id) {
+      const { data: res } = await this.$http.put('categories/' + id, { cat_name: this.editForm.cat_name })
+      if (res.meta.status !== 200) return this.$message.error(res.meta.msg)
+      this.editDialogVisable = false
+      // 重新获取用户的列表
+      this.getCateList()
+      this.$message.success('更新分类成功')
     }
   }
 }
