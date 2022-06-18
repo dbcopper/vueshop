@@ -28,6 +28,19 @@ Vue.prototype.$http = axios
 Vue.config.productionTip = false
 Vue.component('tree-table', TreeTable)
 
+// 注册一个全局过滤器，用来标准化时间
+Vue.filter('dateFormat', function (originVal) {
+  // 将秒时间重置为标准化时间
+  const dt = new Date(originVal)
+  const y = dt.getFullYear()
+  // 从0开始的，加上字符串变为字符串，后面的是补充0使其成为两位
+  const m = (dt.getMonth() + 1 + '').padStart(2, '0')
+  const d = (dt.getDate() + '').padStart(2, '0')
+  const hh = (dt.getHours() + '').padStart(2, '0')
+  const mm = (dt.getMinutes() + '').padStart(2, '0')
+  const ss = (dt.getSeconds() + '').padStart(2, '0')
+  return `${y}-${m}-${d}-${hh}-${mm}-${ss}`
+})
 new Vue({
   router,
   render: h => h(App)
