@@ -48,7 +48,7 @@
         title="添加商品分类"
         :visible.sync="addDialogVisable"
         width="30%"
-        @closed='addDialogClosed'
+        @close='addDialogClosed'
         ref="addDialogRef"
         >
           <el-form :model="addForm" :rules="addFormRules" label-width="100px" ref="addFormRef" >
