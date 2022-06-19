@@ -114,9 +114,9 @@ export default {
       activeIndex: '0',
       addForm: {
         goods_name: '',
-        goods_price: 0,
-        goods_weight: 0,
-        goods_number: 0,
+        goods_price: 1,
+        goods_weight: 1,
+        goods_number: 1,
         goods_cat: [],
         // 图片数组
         pics: [],
@@ -233,7 +233,7 @@ export default {
         // lodash cloneDeep（obj）
         const form = _.cloneDeep(this.addForm)
         // 对深拷贝的进行操作
-        form.goods_cat.join(',')
+        form.goods_cat = form.goods_cat.join(',')
         // 处理动态参数和静态属性
         this.manyTableDate.forEach(item => {
           const newInfo = {
@@ -257,7 +257,8 @@ export default {
         // 但是商品的名称必须唯一
         const { data: res } = await this.$http.post('goods', form)
         console.log(this.onlyTableDate)
-        if (res.meta.status !== 201) return console.log(form)
+        console.log(form)
+        if (res.meta.status !== 201) return console.log(res.meta.status)
         // this.$message.error(res.meta.msg + '添加商品失败')
         this.$message.success('添加商品成功')
         this.$router.push('/goods')
