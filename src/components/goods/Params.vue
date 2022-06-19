@@ -186,7 +186,7 @@ export default {
       this.parentCateList = res.data
     },
     // 选定三级标签
-    async handleChange() { this.getParamDate() },
+    handleChange() { this.getParamDate() },
     // 函数抽离,获取不同界面的参数数据
     async getParamDate() {
       if (this.selectedKey.length !== 3) {
