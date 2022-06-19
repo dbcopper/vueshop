@@ -52,6 +52,32 @@
         </el-pagination>
     </el-card>
     <!-- 编辑表格 -->
+    <!-- 修改分类 -->
+    <el-dialog
+    title="修改商品分类信息"
+    :visible.sync="editDialogVisable"
+    width="30%"
+    >
+    <!-- 为了方便酒先设置这几个参数 -->
+    <el-form :model="editForm"  label-width="100px" ref="editFormRef">
+      <el-form-item label="商品名称：" prop="goods_name">
+        <el-input v-model="editForm.goods_name"></el-input>
+      </el-form-item>
+      <el-form-item label="商品价格" prop="goods_price">
+        <el-input v-model="editForm.goods_price" type="number"></el-input>
+      </el-form-item>
+      <el-form-item label="商品重量" prop="goods_weight">
+        <el-input v-model="editForm.goods_weight" type="number"></el-input>
+      </el-form-item>
+      <el-form-item label="商品数量" prop="goods_number" >
+        <el-input v-model="editForm.goods_number" type="number"></el-input>
+      </el-form-item>
+    </el-form>
+      <span  slot="footer" class="dialog-footer">
+        <el-button @click="editDialogVisable=false">取 消</el-button>
+        <el-button type="primary" @click="editList(editForm.goods_id)">确 定</el-button>
+      </span>
+    </el-dialog>
 </div>
 </template>
 
@@ -67,7 +93,9 @@ export default {
       },
       total: 0,
       //   商品列表,是数组
-      goodsList: []
+      goodsList: [],
+      editDialogVisable: false,
+      editForm: {}
     }
   },
   created() {
@@ -83,8 +111,25 @@ export default {
       this.total = res.data.total
     },
     // 编辑页面
-    showEditDialog() {
-
+    showEditDialog(id) {
+      this.getGoodsById(id)
+      this.editDialogVisable = true
+    },
+    // 根据id获取商品数据
+    async getGoodsById(id) {
+      const { data: res } = await this.$http.get(`goods/${id}`)
+      if (res.meta.status !== 200) return this.$message.error(res.meta.msg)
+      // 将获取的数据放入data中
+      this.editForm = res.data
+    },
+    // 上传数据
+    async editList(id) {
+      const { data: res } = await this.$http.put(`goods/${id}`, this.editForm)
+      if (res.meta.status !== 200) return this.$message.error(res.meta.msg)
+      this.editDialogVisable = false
+      // 重新获取用户的列表
+      this.getGoodsList()
+      this.$message.success('修改商品信息成功')
     },
     // 按照id进行删除
     async removeGoodsById(id) {

@@ -222,6 +222,7 @@ export default {
       //   因为实际上是图片列表，所以用push
       this.addForm.pics.push(picInfo)
     },
+    // 添加商品
     add() {
       this.$refs.addFormRef.validate(async valid => {
         if (!valid) {
