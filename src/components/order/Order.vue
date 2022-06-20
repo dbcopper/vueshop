@@ -21,8 +21,12 @@
         <el-table-column  type="index"></el-table-column>
         <el-table-column  label="订单编号" prop="order_number"></el-table-column>
         <el-table-column  label="订单价格" prop="order_price"></el-table-column>
-        <el-table-column width="140px" label="是否付款" prop="order_pay">
-
+        <el-table-column width="140px" label="是否付款" prop="pay_stauts">
+            <template slot-scope="scope">
+                <!-- 添加过滤器 -->
+            <el-tag type="success" v-if="scope.row.pay_stauts === '1'">已付款</el-tag>
+            <el-tag type="danger" v-else>未付款</el-tag>
+            </template>
         </el-table-column>
         <el-table-column width="140px" label="是否发货" prop="is_send"></el-table-column>
         <el-table-column width="200px" label="下单时间" prop="create_time">
@@ -34,8 +38,8 @@
         <el-table-column width="400px" label="操作">
             <template slot-scope="scope">
                 <!-- 使用if else进行判断 -->
-                <el-button type="primary" icon="el-cion-edit" size="mini" @click="showEditDialog(scope.row.order_id)" >编辑</el-button>
-                <el-button type="danger" icon="el-cion-delete" size="mini" @click="removeOrderById(scope.row.order_id)">删除</el-button>
+                <el-button type="primary" icon="el-cion-edit" size="mini" @click="showEditDialog(scope.row.order_id)" >修改地址</el-button>
+                <el-button type="success" icon="el-cion-delete" size="mini" @click="showProgressOfOrders(scope.row.order_id)">物流进度</el-button>
             </template>
         </el-table-column>
       </el-table>
@@ -56,17 +60,16 @@
     title="修改商品分类信息"
     :visible.sync="editDialogVisable"
     width="30%"
+    @close="editDialogClosed"
     >
     <!-- 为了方便酒先设置这几个参数 -->
-    <el-form :model="editForm"  label-width="100px" ref="editFormRef">
-      <el-form-item label="订单价格：" prop="order_price">
-        <el-input v-model="editForm.order_price"></el-input>
+    <el-form :model="editForm"  label-width="100px" ref="editFormRef" :rules="editFormRules">
+      <el-form-item label="省市区/县"  prop="address1">
+      <!-- 绑定导入的省市县 -->
+        <el-cascader :options="cityData" v-model="editForm.address1"></el-cascader>
       </el-form-item>
-      <el-form-item label="是否付款" prop="order_pay">
-        <el-input v-model="editForm.order_pay"></el-input>
-      </el-form-item>
-      <el-form-item label="是否发货" prop="is_send">
-        <el-input v-model="editForm.is_send"></el-input>
+      <el-form-item label="详细地址" prop="address2">
+        <el-input v-model="editForm.address2"></el-input>
       </el-form-item>
     </el-form>
       <span  slot="footer" class="dialog-footer">
@@ -74,10 +77,28 @@
         <el-button type="primary" @click="editOrderList(editForm.order_id)">确 定</el-button>
       </span>
     </el-dialog>
+    <!-- 物流进度 -->
+    <el-dialog
+    title="物流进度"
+    :visible.sync="progressDialogVisable"
+    width="30%"
+    >api接口写的有问题
+        <el-timeline>
+            <el-timeline-item
+            v-for="(activity, index) in progressInfo"
+            :key="index"
+            :timestamp="activity.time">
+            {{activity.context}}
+            </el-timeline-item>
+        </el-timeline>
+    </el-dialog>
 </div>
 </template>
 
 <script>
+// 导入js
+import cityData from './citydata.js'
+
 export default {
   data() {
     return {
@@ -91,7 +112,19 @@ export default {
       //   商品列表,是数组
       ordersList: [],
       editDialogVisable: false,
-      editForm: {}
+      progressDialogVisable: false,
+      editForm: {
+        address1: [],
+        address2: ''
+      },
+      editFormRules: {
+        address1: [{ required: true, message: '请选择省市区/县', trigger: 'blur' }],
+        address2: [{ required: true, message: '请填写详细地址', trigger: 'blur' }]
+
+      },
+      //  导入省市县包
+      cityData,
+      progressInfo: []
     }
   },
   created() {
@@ -111,6 +144,11 @@ export default {
       this.getOrderById(id)
       this.editDialogVisable = true
     },
+    showProgressOfOrders() {
+    // api接口写的有问题
+    // this.progressOfOrders()
+      this.progressDialogVisable = true
+    },
     // 根据id获取商品数据
     async getOrderById(id) {
       const { data: res } = await this.$http.get(`orders/${id}`)
@@ -120,31 +158,19 @@ export default {
     },
     // 上传数据
     async editOrderList(id) {
-      const { data: res } = await this.$http.put(`orders/${id}`, this.editForm)
-      if (res.meta.status !== 200) return this.$message.error(res.meta.msg)
+      await this.$http.put(`orders/${id}`, this.editForm)
+      //   if (res.meta.status !== 200) return this.$message.error(res.meta.msg)
       this.editDialogVisable = false
       // 重新获取用户的列表
       this.getOrdersList()
-      this.$message.success('修改商品信息成功')
+      this.$message.success('修改订单信息成功')
     },
-    // 按照id进行删除
-    async removeOrderById(id) {
-      const confirmResult = await this.$confirm('此操作将永久删除该商品信息, 是否继续?', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }).catch(err => err)
-      //   catch捕捉错误，取消也是错误噢
-      // 如果用户确认删除，返回值为confirm，否则是cancel
-      if (confirmResult !== 'confirm') { return this.$message.info('取消删除') }
-      //   进行删除操作
-      const { data: res } = await this.$http.delete(`orders/${id}`)
-      if (res.meta.status !== 200) return this.$message.error('删除商品信息失败')
-      this.getOrdersList()
-      this.$message({
-        type: 'success',
-        message: '删除成功!'
-      })
+    // 查询物流进度
+    async progressOfOrders() {
+      const { data: res } = await this.$http.get('/kuaidi/804909574412544580')
+      if (res.meta.status !== 200) return this.$message.error(res.meta.msg)
+      // 将获取的数据放入data中
+      this.progressInfo = res.data
     },
     handleSizeChange(newSize) {
       this.queryInfo.pagesize = newSize
@@ -156,6 +182,9 @@ export default {
       this.queryInfo.pagenum = newPage
       // 更新表格
       this.getOrdersList()
+    },
+    editDialogClosed() {
+      this.$refs.editFormRef.resetFields()
     }
   }
 }
