@@ -1,4 +1,5 @@
 # vue_shop
+Vue framework learning, Content Manage System(CMS) project
 
 ## Project setup
 ```
